@@ -14,7 +14,6 @@ function stringifyNumber(n) {
   if (n%10 === 0) return deca[Math.floor(n/10)-2] + 'ieth';
   return deca[Math.floor(n/10)-2] + 'y-' + special[n%10];
 }
-console.log("hello");
 
 module.exports.hello = function(event, context, callback) {
     function findTimes(err, response) {
@@ -79,11 +78,10 @@ module.exports.hello = function(event, context, callback) {
                       transit_steps.push(step);
                   }
               }
-
               var departure_time = require('moment')(transit_steps[0].transit_details.departure_time.text, "hh:mma");
-              departure_time.utcOffset(-10);
-            //   departure_time.add(10, 'minutes');
-
+              departure_time.add(10, 'minutes');
+              departure_time.add(14, 'hours');
+              departure_time.local();
               googleMapsClient.directions({
                 origin: origin + ", Queensland",
                 destination: destination + ", Queensland",
