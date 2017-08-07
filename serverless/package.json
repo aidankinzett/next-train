@@ -1,0 +1,22 @@
+{
+  "name": "next-train",
+  "version": "1.0.0",
+  "description": "Provide transit info to API.AI chatbot",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidankinzett/next-train.git"
+  },
+  "author": "Aidan Kinzett",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aidankinzett/next-train/issues"
+  },
+  "homepage": "https://github.com/aidankinzett/next-train#readme",
+  "dependencies": {
+    "@google/maps": "^0.4.3"
+  }
+}
