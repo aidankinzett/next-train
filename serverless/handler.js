@@ -6,10 +6,60 @@ arrival/departure times from API.AI:
         translink url, arrival time, departure time
 
 */
+var special = ['zeroth','first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth'];
+var deca = ['twent', 'thirt', 'fort', 'fift', 'sixt', 'sevent', 'eight', 'ninet'];
+
+function stringifyNumber(n) {
+  if (n < 20) return special[n];
+  if (n%10 === 0) return deca[Math.floor(n/10)-2] + 'ieth';
+  return deca[Math.floor(n/10)-2] + 'y-' + special[n%10];
+}
+console.log("hello");
+
 module.exports.hello = function(event, context, callback) {
+    function findTimes(err, response) {
+        var transit_steps = [];
+        for (let step of response.json.routes[0].legs[0].steps) {
+            if (step.travel_mode == "TRANSIT") {
+                transit_steps.push(step);
+            }
+        }
+
+        if (transit_steps.length == 1) {
+            let info = transit_steps[0].transit_details
+
+            let result = "The next train leaves " + info.departure_stop.name + " at " + info.departure_time.text +
+                         " and gets to " + info.arrival_stop.name + " at " + info.arrival_time.text +
+                         ", on line " + info.line.short_name + ".";
+
+            let results = JSON.stringify({"speech":result, "displayText":result});
+            callback(null, {"statusCode": 200, "headers": {'Content-Type': 'application/json'} ,"body": results});
+        } else {
+            if (transit_steps.length == 2) {
+                var result = "There is a transfer for this trip. ";
+            } else {
+                var result = "There are " + (transit_steps.length - 1) + " transfers for this trip. ";
+            }
+
+            for (var i = 0; i < 2; i++) {
+                let info = transit_steps[i].transit_details;
+                var ordinal = stringifyNumber(i+1);
+                result += "The " + ordinal + " train leaves " + info.departure_stop.name + " at " + info.departure_time.text +
+                " and gets to " + info.arrival_stop.name + " at " + info.arrival_time.text +
+                ", on line " + info.line.short_name + ". ";
+            }
+
+            var results = JSON.stringify({"speech":result, "displayText":result});
+
+            callback(null, {"statusCode": 200, "headers": {'Content-Type': 'application/json'} ,"body": results});
+            }
+    }
+
     let body = JSON.parse(event.body);
     let origin = body.result.parameters["stations"][0];
     let destination = body.result.parameters["destinations"][0];
+    let after = (body.result.parameters["after"] == "true");
+
 
     var googleMapsClient = require('@google/maps').createClient({
       key: 'AIzaSyAdX7G3rvzy-uJ_hLFMiPmw2MLo7Atw3Sc'
@@ -18,19 +68,36 @@ module.exports.hello = function(event, context, callback) {
     googleMapsClient.directions({
       origin: origin + ", Queensland",
       destination: destination + ", Queensland",
-      mode: 'transit'
+      mode: 'transit',
+      transit_mode: 'train'
     }, function(err, response) {
       if (!err) {
-         for (let step of response.json.routes[0].legs[0].steps) {
-             if (step.travel_mode == "TRANSIT") {
-                 var departure_time = step.transit_details.departure_time.text;
-                 var arrival_time = step.transit_details.arrival_time.text;
-             }
-         }
-         let result = "The next train that goes from "+ origin +" to "+destination+" leaves at " + departure_time + ", and arrives at " + arrival_time;
-         let results = JSON.stringify({"speech":result, "displayText":result});
-         callback(null, {"statusCode": 200, "headers": {'Content-Type': 'application/json'} ,"body": results});
-    }
-    });
+          if (after) {
+              var transit_steps = [];
+              for (let step of response.json.routes[0].legs[0].steps) {
+                  if (step.travel_mode == "TRANSIT") {
+                      transit_steps.push(step);
+                  }
+              }
 
+              var departure_time = require('moment')(transit_steps[0].transit_details.departure_time.text, "hh:mma");
+              departure_time.utcOffset(-10);
+            //   departure_time.add(10, 'minutes');
+
+              googleMapsClient.directions({
+                origin: origin + ", Queensland",
+                destination: destination + ", Queensland",
+                mode: 'transit',
+                alternatives: true,
+                departure_time: departure_time.unix()
+              }, function(err, response) {
+                  findTimes(err, response);
+              });
+
+         } else {
+             findTimes(err, response);
+         }
+         }
+    }
+    );
 };

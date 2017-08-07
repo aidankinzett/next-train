@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/aidankinzett/next-train#readme",
   "dependencies": {
-    "@google/maps": "^0.4.3"
+    "@google/maps": "^0.4.3",
+    "moment": "^2.18.1"
   }
 }
